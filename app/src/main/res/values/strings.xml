@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">Pawn_Ledger</string>
+    <string name="pawn_ledger_title">Pawn Ledger</string>
+    <string name="pawn_amount_hint">အပေါင် amount (MMK)</string>
+    <string name="redeem_amount_hint">အရွေး amount (MMK)</string>
+    <string name="save_daily_totals">Save daily totals</string>
+    <string name="button_test_message">Button works!</string>
+    <string name="daily_net_placeholder">Selected day\'s net: —</string>
+    <string name="daily_net_result">Selected day\'s net: %1$s MMK</string>
+    <string name="current_balance_placeholder">Current pawn balance: — MMK</string>
+    <string name="opening_balance_hint">Opening pawn balance (MMK)</string>
+    <string name="set_opening_balance">Set opening balance</string>
+    <string name="current_balance_value">Current pawn balance: %1$s MMK</string>
+    <string name="choose_record_date">Choose record date</string>
+    <string name="interest_amount_hint">Interest received (MMK)</string>
+
+
+</resources>
