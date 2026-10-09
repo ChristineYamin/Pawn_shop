@@ -13,6 +13,22 @@
     <string name="current_balance_value">Current pawn balance: %1$s MMK</string>
     <string name="choose_record_date">Choose record date</string>
     <string name="interest_amount_hint">Interest received (MMK)</string>
+    <string name="monthly_dashboard_title">Monthly dashboard</string>
+    <string name="choose_dashboard_month">Choose month</string>
+    <string name="month_end_balance_placeholder">Month-end pawn balance: — MMK</string>
+    <string name="month_end_balance_value">Month-end pawn balance: %1$s MMK</string>
+    <string name="monthly_interest_placeholder">Interest received this month: — MMK</string>
+    <string name="monthly_interest_value">Interest received this month: %1$s MMK</string>
+    <string name="back_to_ledger">Back to ledger</string>
+    <string name="backup_records">စာရင်းမိတ္တူ သိမ်းရန်</string>
+    <string name="restore_records">စာရင်းမိတ္တူမှ ပြန်ထည့်ရန်</string>
+    <string name="settings">ဆက်တင်များ</string>
+    <string name="owner_access"> Owner Access</string>
+    <string name="lock_owner_access">Lock / Staff screen</string>
+    <string name="records_title">Daily records</string>
+
+
+
 
 
 </resources>

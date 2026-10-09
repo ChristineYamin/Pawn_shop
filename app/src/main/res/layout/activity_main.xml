@@ -118,7 +118,7 @@
         android:hint="@string/interest_amount_hint"
         android:inputType="number"
         android:importantForAutofill="no"
-        app:layout_constraintTop_toBottomOf="@id/interestAmountInput"
+        app:layout_constraintTop_toBottomOf="@id/redeemAmountInput"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
@@ -135,7 +135,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/redeemAmountInput" />
+        app:layout_constraintTop_toBottomOf="@id/interestAmountInput" />
 
     <TextView
         android:id="@+id/netResultText"
@@ -151,25 +151,61 @@
         app:layout_constraintTop_toBottomOf="@id/saveButton"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
-    <ScrollView
+    <Button
+        android:id="@+id/openRecordsButton"
         android:layout_width="0dp"
-        android:layout_height="0dp"
+        android:layout_height="wrap_content"
         android:layout_marginStart="24dp"
         android:layout_marginEnd="24dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginBottom="16dp"
+        android:layout_marginTop="12dp"
+        android:minHeight="48dp"
+        android:text="@string/records_title"
+        android:textAllCaps="false"
         app:layout_constraintTop_toBottomOf="@id/netResultText"
-        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        app:layout_constraintEnd_toEndOf="parent" />
 
-        <TableLayout
-            android:id="@+id/recordsTable"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:stretchColumns="0,1,2,3" />
 
-    </ScrollView>
+    <Button
+        android:id="@+id/openDashboardButton"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginTop="12dp"
+        android:minHeight="48dp"
+        android:text="@string/monthly_dashboard_title"
+        android:textAllCaps="false"
+        app:layout_constraintTop_toBottomOf="@id/openRecordsButton"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+    <Button
+        android:id="@+id/settingsButton"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginTop="8dp"
+        android:minHeight="48dp"
+        android:text="@string/settings"
+        android:textAllCaps="false"
+        app:layout_constraintTop_toBottomOf="@id/openDashboardButton"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <Button
+        android:id="@+id/lockOwnerButton"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginTop="8dp"
+        android:minHeight="48dp"
+        android:text="@string/lock_owner_access"
+        android:textAllCaps="false"
+        app:layout_constraintTop_toBottomOf="@id/settingsButton"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
 
 

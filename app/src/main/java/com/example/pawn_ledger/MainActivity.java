@@ -16,18 +16,120 @@ import androidx.core.view.WindowInsetsCompat;
 import android.widget.Button;
 import android.widget.Toast;
 import android.widget.TextView;
+import android.content.Intent;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 
-public class MainActivity extends AppCompatActivity {
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+
+public class MainActivity extends OwnerActivity{
     private LocalDate selectedDate =
             LocalDate.now(ZoneId.of("Asia/Yangon"));
+    private final ActivityResultLauncher<String[]> restoreLauncher =
+            registerForActivityResult(
+                    new ActivityResultContracts.OpenDocument(),
+                    uri -> {
+                        if (uri != null) {
+                            runWithOwnerAccess(
+                                    () -> readBackupForRestore(uri)
+                            );
+                        }
+                    }
+            );
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (!OwnerSession.isUnlocked()) {
+            android.content.Intent intent =
+                    new android.content.Intent(
+                            this,
+                            StaffEntryActivity.class
+                    );
+
+            intent.addFlags(
+                    android.content.Intent.FLAG_ACTIVITY_NEW_TASK |
+                            android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+            );
+
+            startActivity(intent);
+            finish();
+            return;
+        }
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
         LedgerDb ledgerDb = new LedgerDb(this);
-        refreshRecordsTable(ledgerDb);
+        Button recordsButton = findViewById(R.id.openRecordsButton);
+
+        recordsButton.setOnClickListener(v -> {
+            Intent intent = new Intent(
+                    this,
+                    RecordsActivity.class
+            );
+            startActivity(intent);
+        });
+        Button lockButton = findViewById(R.id.lockOwnerButton);
+
+        lockButton.setOnClickListener(v -> {
+            OwnerSession.lock();
+
+            Intent intent = new Intent(
+                    this,
+                    StaffEntryActivity.class
+            );
+
+            intent.addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK |
+                            Intent.FLAG_ACTIVITY_CLEAR_TASK
+            );
+
+            startActivity(intent);
+            finish();
+        });
+        Button settingsButton = findViewById(R.id.settingsButton);
+
+        settingsButton.setOnClickListener(v -> {
+            String[] options = {
+                    getString(R.string.backup_records),
+                    getString(R.string.restore_records)
+            };
+
+            new androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle(R.string.settings)
+                    .setItems(options, (dialog, which) -> {
+                        if (which == 0) {
+                            String fileName = "pawn-ledger-backup-" +
+                                    LocalDate.now(ZoneId.of("Asia/Yangon")) +
+                                    ".json";
+
+                            backupLauncher.launch(fileName);
+                        } else {
+                            restoreLauncher.launch(
+                                    new String[]{
+                                            "application/json",
+                                            "text/plain"
+                                    }
+                            );
+                        }
+                    })
+                    .show();
+        });
+
+
+
+        Button dashboardButton = findViewById(R.id.openDashboardButton);
+
+        dashboardButton.setOnClickListener(v -> {
+            Intent intent = new Intent(
+                    MainActivity.this,
+                    MonthlyDashboardActivity.class
+            );
+            startActivity(intent);
+        });
+        refreshCurrentBalance(ledgerDb);
+        loadSelectedDate(ledgerDb);
         Button dateButton = findViewById(R.id.selectDateButton);
         dateButton.setText(selectedDate.toString());
 
@@ -53,7 +155,7 @@ public class MainActivity extends AppCompatActivity {
                         dateButton.setText(selectedDate.toString());
                         loadSelectedDate(ledgerDb);
                         refreshCurrentBalance(ledgerDb);
-                        refreshRecordsTable(ledgerDb);
+
                     },
                     selectedDate.getYear(),
                     selectedDate.getMonthValue() - 1,
@@ -201,7 +303,6 @@ public class MainActivity extends AppCompatActivity {
 
                                         if (updated) {
                                             refreshCurrentBalance(ledgerDb);
-                                            refreshRecordsTable(ledgerDb);
                                             loadSelectedDate(ledgerDb);
 
                                             Toast.makeText(
@@ -253,6 +354,49 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
     }
+    private void restoreRecords(String backupJson) {
+        LedgerDb restoreDb = new LedgerDb(this);
+
+        try {
+            restoreDb.restoreBackupJson(backupJson);
+
+            Long openingBalance = restoreDb.getOpeningBalance();
+
+            EditText openingInput =
+                    findViewById(R.id.openingBalanceInput);
+            Button openingButton =
+                    findViewById(R.id.setOpeningBalanceButton);
+
+            openingInput.setText(
+                    openingBalance == null
+                            ? ""
+                            : String.valueOf(openingBalance)
+            );
+
+            openingInput.setEnabled(openingBalance == null);
+            openingButton.setEnabled(openingBalance == null);
+            openingInput.setError(null);
+
+            refreshCurrentBalance(restoreDb);
+            loadSelectedDate(restoreDb);
+
+            Toast.makeText(
+                    this,
+                    "Records restored",
+                    Toast.LENGTH_LONG
+            ).show();
+
+        } catch (org.json.JSONException |
+                 android.database.sqlite.SQLiteException e) {
+            Toast.makeText(
+                    this,
+                    "Restore failed. Check your backup file.",
+                    Toast.LENGTH_LONG
+            ).show();
+        } finally {
+            restoreDb.close();
+        }
+    }
     private void refreshCurrentBalance(LedgerDb ledgerDb) {
         TextView balanceText = findViewById(R.id.currentBalanceText);
 
@@ -276,6 +420,7 @@ public class MainActivity extends AppCompatActivity {
     private void loadSelectedDate(LedgerDb ledgerDb) {
         EditText pawnInput = findViewById(R.id.pawnAmountInput);
         EditText redeemInput = findViewById(R.id.redeemAmountInput);
+        EditText interestInput = findViewById(R.id.interestAmountInput);
         TextView netText = findViewById(R.id.netResultText);
 
         long[] amounts = ledgerDb.getDailyTotals(
@@ -284,16 +429,19 @@ public class MainActivity extends AppCompatActivity {
 
         pawnInput.setError(null);
         redeemInput.setError(null);
+        interestInput.setError(null);
 
         if (amounts == null) {
             pawnInput.setText("");
             redeemInput.setText("");
+            interestInput.setText("");
             netText.setText(R.string.daily_net_placeholder);
             return;
         }
 
         pawnInput.setText(String.valueOf(amounts[0]));
         redeemInput.setText(String.valueOf(amounts[1]));
+        interestInput.setText(String.valueOf(amounts[2]));
 
         long net = amounts[0] - amounts[1];
         String formattedNet = net > 0 ? "+" + net : String.valueOf(net);
@@ -305,61 +453,121 @@ public class MainActivity extends AppCompatActivity {
 
 
     }
-    private void refreshRecordsTable(LedgerDb ledgerDb) {
-        android.widget.TableLayout table =
-                findViewById(R.id.recordsTable);
+    private final ActivityResultLauncher<String> backupLauncher =
+            registerForActivityResult(
+                    new ActivityResultContracts.CreateDocument(
+                            "application/json"
+                    ),
+                    uri -> {
+                        if (uri == null) {
+                            return;
+                        }
 
-        table.removeAllViews();
+                        runWithOwnerAccess(() -> {
+                            LedgerDb backupDb = new LedgerDb(this);
 
-        addRecordRow(table, "Date", "+ Pawn", "− Redeem", "Net");
+                            try {
+                                String backupJson =
+                                        backupDb.createBackupJson();
 
-        java.text.NumberFormat formatter =
-                java.text.NumberFormat.getIntegerInstance(
-                        java.util.Locale.US
-                );
+                                try (OutputStream output =
+                                             getContentResolver()
+                                                     .openOutputStream(uri)) {
 
-        try (android.database.Cursor cursor =
-                     ledgerDb.getAllDailyTotals()) {
+                                    if (output == null) {
+                                        throw new java.io.IOException(
+                                                "Cannot open backup file"
+                                        );
+                                    }
 
-            while (cursor.moveToNext()) {
-                String date = cursor.getString(0);
-                long pawn = cursor.getLong(1);
-                long redeem = cursor.getLong(2);
-                long net = pawn - redeem;
+                                    output.write(
+                                            backupJson.getBytes(
+                                                    StandardCharsets.UTF_8
+                                            )
+                                    );
+                                }
 
-                String netText =
-                        (net > 0 ? "+" : "") + formatter.format(net);
+                                Toast.makeText(
+                                        this,
+                                        "Backup saved",
+                                        Toast.LENGTH_LONG
+                                ).show();
 
-                addRecordRow(
-                        table,
-                        date,
-                        formatter.format(pawn),
-                        formatter.format(redeem),
-                        netText
-                );
+                            } catch (java.io.IOException |
+                                     org.json.JSONException |
+                                     SecurityException |
+                                     android.database.sqlite.SQLiteException e) {
+                                Toast.makeText(
+                                        this,
+                                        "Backup failed. Please try again.",
+                                        Toast.LENGTH_LONG
+                                ).show();
+                            } finally {
+                                backupDb.close();
+                            }
+                        });
+                    }
+            );
+
+
+
+
+    private void readBackupForRestore(android.net.Uri uri) {
+        try {
+            StringBuilder text = new StringBuilder();
+
+            try (java.io.InputStream input =
+                         getContentResolver().openInputStream(uri)) {
+
+                if (input == null) {
+                    throw new java.io.IOException(
+                            "Cannot open backup file"
+                    );
+                }
+
+                try (java.io.InputStreamReader reader =
+                             new java.io.InputStreamReader(
+                                     input,
+                                     StandardCharsets.UTF_8
+                             )) {
+                    char[] buffer = new char[4096];
+                    int count;
+
+                    while ((count = reader.read(buffer)) != -1) {
+                        if (text.length() + count > 10_000_000) {
+                            throw new java.io.IOException(
+                                    "Backup file is too large"
+                            );
+                        }
+
+                        text.append(buffer, 0, count);
+                    }
+                }
             }
+
+            String backupJson = text.toString();
+
+            new androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle("Restore records?")
+                    .setMessage(
+                            "This will replace your current records " +
+                                    "and opening balance with the backup. " +
+                                    "Entries added after that backup will be lost."
+                    )
+                    .setNegativeButton("Cancel", null)
+                    .setPositiveButton("Restore", (dialog, which) ->
+                            runWithOwnerAccess(
+                                    () -> restoreRecords(backupJson)
+                            )
+                    )
+                    .show();
+
+        } catch (java.io.IOException | SecurityException e) {
+            Toast.makeText(
+                    this,
+                    "Could not read the backup file",
+                    Toast.LENGTH_LONG
+            ).show();
         }
-    }
-
-    private void addRecordRow(
-            android.widget.TableLayout table,
-            String... values
-    ) {
-        android.widget.TableRow row =
-                new android.widget.TableRow(this);
-
-        int padding = Math.round(
-                8 * getResources().getDisplayMetrics().density
-        );
-
-        for (String value : values) {
-            TextView cell = new TextView(this);
-            cell.setText(value);
-            cell.setTextSize(14);
-            cell.setPadding(padding, padding, padding, padding);
-            row.addView(cell);
-        }
-
-        table.addView(row);
     }
 }
