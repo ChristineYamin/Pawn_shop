@@ -26,6 +26,12 @@
     <string name="owner_access"> Owner Access</string>
     <string name="lock_owner_access">Lock / Staff screen</string>
     <string name="records_title">Daily records</string>
+    <string name="record_interest">Record interest</string>
+    <string name="edit_pawn_redeem">Edit အပေါင် / အရွေး (+ / −)</string>
+    <string name="save_record">Save record</string>
+    <string name="back_to_owner_home">Back to owner home</string>
+    <string name="start_fresh">Start fresh / Set real pawn balance</string>
+
 
 
 

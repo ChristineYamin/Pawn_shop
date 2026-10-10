@@ -38,6 +38,9 @@
         <activity
             android:name=".RecordsActivity"
             android:exported="false" />
+        <activity
+            android:name=".OwnerEntryActivity"
+            android:exported="false" />
 
     </application>
 

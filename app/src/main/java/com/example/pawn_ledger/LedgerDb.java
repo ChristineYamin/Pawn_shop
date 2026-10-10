@@ -398,6 +398,67 @@ public class LedgerDb extends SQLiteOpenHelper {
             db.endTransaction();
         }
     }
+    public boolean saveDailyInterest(String date, long interestAmount) {
+        if (interestAmount < 0) {
+            return false;
+        }
+
+        SQLiteDatabase db = getWritableDatabase();
+        db.beginTransaction();
+
+        try {
+            ContentValues values = new ContentValues();
+            values.put("interest_amount", interestAmount);
+
+            int updatedRows = db.update(
+                    "daily_totals",
+                    values,
+                    "date = ?",
+                    new String[]{date}
+            );
+
+            if (updatedRows == 0) {
+                values.put("date", date);
+                values.put("pawn_amount", 0);
+                values.put("redeem_amount", 0);
+
+                db.insertOrThrow("daily_totals", null, values);
+            }
+
+            db.setTransactionSuccessful();
+            return true;
+        } finally {
+            db.endTransaction();
+        }
+    }
+
+    public void startFresh(long openingBalance) {
+        if (openingBalance < 0) {
+            throw new IllegalArgumentException(
+                    "Opening balance cannot be negative"
+            );
+        }
+
+        SQLiteDatabase db = getWritableDatabase();
+        db.beginTransaction();
+
+        try {
+            db.delete("daily_totals", null, null);
+            db.delete("settings", null, null);
+
+            ContentValues values = new ContentValues();
+            values.put("id", 1);
+            values.put("opening_balance", openingBalance);
+
+            db.insertOrThrow("settings", null, values);
+
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+    }
+
+
 
 
 
